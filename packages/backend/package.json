@@ -12,9 +12,12 @@
     "validate": "yarn format:check && yarn lint && yarn types:check",
     "test": "jest",
     "test:watch": "yarn test --watchAll",
-    "start": "tsc && node ./build/main.js"
+    "start-alice": "rm -rf build && yarn build && cp -r build build-alice && NAME=alice PORT=3000 node ./build-alice/src/main.js",
+    "start-bob": "rm -rf build && yarn build && cp -r build build-bob && NAME=bob PORT=3001 node ./build-bob/src/main.js"
   },
   "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
     "@types/jest": "^29.5.11",
     "@typescript-eslint/eslint-plugin": "^6.13.2",
     "@typescript-eslint/parser": "^6.13.2",
@@ -34,6 +37,8 @@
     "@aries-framework/node": "0.4.2",
     "@hyperledger/anoncreds-nodejs": "0.2.0-dev.4",
     "@hyperledger/aries-askar-nodejs": "^0.2.0-dev.1",
-    "@hyperledger/indy-vdr-nodejs": "0.2.0-dev.5"
+    "@hyperledger/indy-vdr-nodejs": "0.2.0-dev.5",
+    "cors": "^2.8.5",
+    "express": "^4.18.2"
   }
 }
