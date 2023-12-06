@@ -12,8 +12,8 @@
     "validate": "yarn format:check && yarn lint && yarn types:check",
     "test": "jest",
     "test:watch": "yarn test --watchAll",
-    "start-alice": "rm -rf build && yarn build && cp -r build build-alice && NAME=alice PORT=3000 node ./build-alice/src/main.js",
-    "start-bob": "rm -rf build && yarn build && cp -r build build-bob && NAME=bob PORT=3001 node ./build-bob/src/main.js"
+    "start-alice": "rm -rf build && rm -rf build-alice && yarn build && cp -r build build-alice && NAME=alice PORT=3000 node ./build-alice/src/main.js",
+    "start-bob": "rm -rf build && rm -rf build-bob && yarn build && cp -r build build-bob && NAME=bob PORT=3001 node ./build-bob/src/main.js"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",

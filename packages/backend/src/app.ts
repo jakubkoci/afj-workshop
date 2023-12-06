@@ -5,6 +5,7 @@ import { asyncHandler, errorHandler } from './middleware'
 import * as repository from './repository'
 import {
   Agent,
+  ConnectionsModule,
   ConsoleLogger,
   DidsModule,
   HttpOutboundTransport,
@@ -28,11 +29,9 @@ import { indyVdr } from '@hyperledger/indy-vdr-nodejs'
 import { bcovrinTestnet } from './txns'
 
 export async function startApp(agentName: string, port: number) {
-  const agent = createAgent(agentName)
+  const agent = createAgent(agentName, port)
 
-  if (!agent) throw new Error('Agent is not initialized!')
-
-  console.log('Agent initialized!')
+  if (!agent) throw new Error('Agent has not been created!')
 
   const app = express()
   // app.use(morgan(':date[iso] :method :url :response-time'))
@@ -142,6 +141,16 @@ export async function startApp(agentName: string, port: number) {
   )
 
   app.get(
+    '/invitation',
+    asyncHandler(async (req, res) => {
+      // TODO Section 2: Create an invitation
+      const outOfBandRecord = await agent.oob.createInvitation()
+      const { outOfBandInvitation } = outOfBandRecord
+      res.send(outOfBandInvitation.toUrl({ domain: 'https://example.com/ssi' }))
+    }),
+  )
+
+  app.get(
     '/register-schema',
     asyncHandler(async (req, res) => {
       const issuerDid = repository.getDid()
@@ -228,8 +237,8 @@ export async function startApp(agentName: string, port: number) {
       const { outOfBandRecord, connectionRecord } =
         await agent.oob.receiveInvitationFromUrl(invitationUrl, {
           alias: 'Test name',
-          autoAcceptInvitation: true,
-          autoAcceptConnection: true,
+          // autoAcceptInvitation: true,
+          // autoAcceptConnection: true,
         })
       res.status(200).json({ outOfBandRecord, connectionRecord })
     }),
@@ -237,17 +246,19 @@ export async function startApp(agentName: string, port: number) {
 
   app.use(errorHandler)
   await agent.initialize()
+  console.log('Agent started.')
 
   return app
 }
 
-function createAgent(name: string) {
+function createAgent(name: string, port: number) {
   const config: InitConfig = {
     label: name,
     walletConfig: {
       id: name,
       key: 'testkey0000000000000000000000000',
     },
+    endpoints: [`http://localhost:${port}`],
     logger: new ConsoleLogger(LogLevel.trace),
   }
 
@@ -257,6 +268,9 @@ function createAgent(name: string) {
     modules: {
       askar: new AskarModule({
         ariesAskar,
+      }),
+      connections: new ConnectionsModule({
+        autoAcceptConnections: true,
       }),
       anoncredsRs: new AnonCredsRsModule({
         anoncreds,
