@@ -24,5 +24,16 @@
     "jest": "^29.7.0",
     "ts-jest": "^29.1.1",
     "typescript": "^5.3.2"
+  },
+  "dependencies": {
+    "@aries-framework/anoncreds": "0.4.2",
+    "@aries-framework/anoncreds-rs": "0.4.2",
+    "@aries-framework/askar": "0.4.2",
+    "@aries-framework/core": "0.4.2",
+    "@aries-framework/indy-vdr": "0.4.2",
+    "@aries-framework/node": "0.4.2",
+    "@hyperledger/anoncreds-nodejs": "0.2.0-dev.4",
+    "@hyperledger/aries-askar-nodejs": "^0.2.0-dev.1",
+    "@hyperledger/indy-vdr-nodejs": "0.2.0-dev.5"
   }
 }
