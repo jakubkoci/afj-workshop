@@ -1,4 +1,4 @@
-import { startApp } from './app'
+import { startApp } from './workshop'
 
 export function hello(name: string) {
   const greeting = `Hello, ${name}!`
