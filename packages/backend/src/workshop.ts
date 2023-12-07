@@ -47,16 +47,6 @@ export async function startApp(agentName: string, port: number) {
   agent.registerInboundTransport(new HttpInboundTransport({ app, port }))
 
   app.get(
-    '/invitation',
-    asyncHandler(async (req, res) => {
-      // TODO Section 2: Create an invitation
-      const outOfBandRecord = await agent.oob.createInvitation()
-      const { outOfBandInvitation } = outOfBandRecord
-      res.send(outOfBandInvitation.toUrl({ domain: 'https://example.com/ssi' }))
-    }),
-  )
-
-  app.get(
     '/register-schema',
     asyncHandler(async (req, res) => {
       const issuerDid = repository.getDid()
@@ -132,6 +122,16 @@ export async function startApp(agentName: string, port: number) {
 
       repository.saveCredentialDefinitionId(credentialDefinitionId)
       res.status(200).json({ credentialDefinitionResult })
+    }),
+  )
+
+  app.get(
+    '/invitation',
+    asyncHandler(async (req, res) => {
+      // TODO Section 2: Create an invitation
+      const outOfBandRecord = await agent.oob.createInvitation()
+      const { outOfBandInvitation } = outOfBandRecord
+      res.send(outOfBandInvitation.toUrl({ domain: 'https://example.com/ssi' }))
     }),
   )
 
