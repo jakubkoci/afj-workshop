@@ -1,5 +1,5 @@
 {
   "did": "did:indy:bcovrin:test:jLNmQZPJjeiCj22oF1h13",
-  "schemaId": "",
-  "credentialDefinitionId": ""
+  "schemaId": "did:indy:bcovrin:test:jLNmQZPJjeiCj22oF1h13/anoncreds/v0/SCHEMA/Example Schema to register/1.0.0",
+  "credentialDefinitionId": "did:indy:bcovrin:test:jLNmQZPJjeiCj22oF1h13/anoncreds/v0/CLAIM_DEF/204100/default"
 }

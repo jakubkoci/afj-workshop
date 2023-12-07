@@ -5,19 +5,28 @@ import {
   Agent,
   ConnectionsModule,
   ConsoleLogger,
+  CredentialEventTypes,
+  CredentialState,
+  CredentialStateChangedEvent,
+  CredentialsModule,
   DidsModule,
   HttpOutboundTransport,
   InitConfig,
   LogLevel,
+  V2CredentialProtocol,
 } from '@aries-framework/core'
 import { HttpInboundTransport, agentDependencies } from '@aries-framework/node'
 import { AskarModule } from '@aries-framework/askar'
 import { ariesAskar } from '@hyperledger/aries-askar-nodejs'
-import { AnonCredsModule } from '@aries-framework/anoncreds'
+import {
+  AnonCredsCredentialFormatService,
+  AnonCredsModule,
+} from '@aries-framework/anoncreds'
 import { AnonCredsRsModule } from '@aries-framework/anoncreds-rs'
 import { anoncreds } from '@hyperledger/anoncreds-nodejs'
 import {
   IndyVdrAnonCredsRegistry,
+  IndyVdrIndyDidRegistrar,
   IndyVdrIndyDidResolver,
   IndyVdrModule,
 } from '@aries-framework/indy-vdr'
@@ -139,6 +148,30 @@ export async function startApp(agentName: string, port: number) {
     }),
   )
 
+  app.get(
+    '/issue-credential/:connectionId',
+    asyncHandler(async (req, res) => {
+      const connectionId = req.params.connectionId
+      const credentialDefinitionId = repository.getCredentialDefinitionId()
+
+      const anonCredsCredentialExchangeRecord =
+        agent.credentials.offerCredential({
+          protocolVersion: 'v2',
+          connectionId,
+          credentialFormats: {
+            anoncreds: {
+              credentialDefinitionId,
+              attributes: [
+                { name: 'name', value: 'Jane Doe' },
+                // { name: 'age', value: '23' },
+              ],
+            },
+          },
+        })
+      res.status(200).json(anonCredsCredentialExchangeRecord)
+    }),
+  )
+
   app.use(errorHandler)
   await agent.initialize()
   console.log('Agent started.')
@@ -185,10 +218,42 @@ function createAgent(name: string, port: number) {
         ],
       }),
       dids: new DidsModule({
+        registrars: [new IndyVdrIndyDidRegistrar()],
         resolvers: [new IndyVdrIndyDidResolver()],
+      }),
+      credentials: new CredentialsModule({
+        credentialProtocols: [
+          new V2CredentialProtocol({
+            credentialFormats: [
+              // new LegacyIndyCredentialFormatService(),
+              new AnonCredsCredentialFormatService(),
+            ],
+          }),
+        ],
       }),
     },
   })
+
+  agent.events.on<CredentialStateChangedEvent>(
+    CredentialEventTypes.CredentialStateChanged,
+    async ({ payload }) => {
+      switch (payload.credentialRecord.state) {
+        case CredentialState.OfferReceived: {
+          console.log('received a credential')
+          // custom logic here
+          await agent.credentials.acceptOffer({
+            credentialRecordId: payload.credentialRecord.id,
+          })
+          break
+        }
+        case CredentialState.Done: {
+          console.log(
+            `Credential for credential id ${payload.credentialRecord.id} is accepted`,
+          )
+        }
+      }
+    },
+  )
 
   return agent
 }

@@ -32,11 +32,10 @@ export function createApp(agent: Agent) {
   )
 
   app.get(
-    '/import-did',
+    '/import-did/:seed',
     asyncHandler(async (req, res) => {
-      // params
       // What you input on bcovrin. Should be kept secure in production!
-      const seed = 'acea2c3daef588159078fe6a0a779df5'
+      const seed = req.params.seed
       // will be returned after registering seed on bcovrin
       const unqualifiedIndyDid = `jLNmQZPJjeiCj22oF1h13`
 
