@@ -3,6 +3,7 @@ import { asyncHandler, errorHandler } from './middleware'
 import * as repository from './repository'
 import {
   Agent,
+  AutoAcceptProof,
   ConnectionsModule,
   ConsoleLogger,
   CredentialEventTypes,
@@ -13,14 +14,15 @@ import {
   HttpOutboundTransport,
   InitConfig,
   LogLevel,
+  V2CredentialPreview,
   V2CredentialProtocol,
 } from '@aries-framework/core'
 import { HttpInboundTransport, agentDependencies } from '@aries-framework/node'
 import { AskarModule } from '@aries-framework/askar'
 import { ariesAskar } from '@hyperledger/aries-askar-nodejs'
 import {
-  AnonCredsCredentialFormatService,
   AnonCredsModule,
+  LegacyIndyCredentialFormatService,
 } from '@aries-framework/anoncreds'
 import { AnonCredsRsModule } from '@aries-framework/anoncreds-rs'
 import { anoncreds } from '@hyperledger/anoncreds-nodejs'
@@ -68,7 +70,7 @@ export async function startApp(agentName: string, port: number) {
             'Event Year',
           ],
           name: 'Conference Ticket',
-          version: '1.0.0',
+          version: '1.0.1',
           issuerId: issuerDid,
         },
         options: {},
@@ -154,21 +156,124 @@ export async function startApp(agentName: string, port: number) {
       const connectionId = req.params.connectionId
       const credentialDefinitionId = repository.getCredentialDefinitionId()
 
-      const anonCredsCredentialExchangeRecord =
-        agent.credentials.offerCredential({
+      const credentialPreview = V2CredentialPreview.fromRecord({
+        Name: 'John',
+        Surname: 'Doe',
+        'Date of Birth': '19911911',
+        'Event Name': 'Hyperledger Global Forum',
+        'Event Year': '2022',
+      })
+
+      const indyCredentialExchangeRecord =
+        await agent.credentials.offerCredential({
           protocolVersion: 'v2',
           connectionId,
           credentialFormats: {
-            anoncreds: {
+            indy: {
               credentialDefinitionId,
-              attributes: [
-                { name: 'name', value: 'Jane Doe' },
-                // { name: 'age', value: '23' },
-              ],
+              // attributes: [
+              //   { name: 'Name', value: 'Jane Doe' },
+              //   { name: 'Surname', value: 'Doe' },
+              //   { name: 'Date of Birth', value: '19911911' },
+              //   { name: 'Event Name', value: 'Hyperledger Global Forum' },
+              //   { name: 'Event Year', value: '2022' },
+              // ],
+              attributes: credentialPreview.attributes,
             },
           },
         })
-      res.status(200).json(anonCredsCredentialExchangeRecord)
+      res.status(200).json(indyCredentialExchangeRecord)
+    }),
+  )
+
+  app.get(
+    '/request-proof/:connectionId',
+    asyncHandler(async (req, res) => {
+      // TODO Section 4: Request a proof
+      const connectionId = req.params.connectionId
+
+      const credentialDefinitionId = repository.getCredentialDefinitionId()
+      if (!credentialDefinitionId) {
+        throw new Error('Credential definition is missing.')
+      }
+
+      // const attributes = {
+      //   Surname: new ProofAttributeInfo({
+      //     name: 'Surname',
+      //     restrictions: [
+      //       new AttributeFilter({
+      //         credentialDefinitionId,
+      //       }),
+      //     ],
+      //   }),
+      //   'Event Name': new ProofAttributeInfo({
+      //     name: 'Event Name',
+      //     restrictions: [
+      //       new AttributeFilter({
+      //         credentialDefinitionId,
+      //       }),
+      //     ],
+      //   }),
+      // }
+
+      // const predicates = {
+      //   'Date of Birth': new ProofPredicateInfo({
+      //     name: 'Date of Birth',
+      //     predicateType: PredicateType.LessThanOrEqualTo,
+      //     predicateValue: 20000101,
+      //     restrictions: [
+      //       new AttributeFilter({
+      //         credentialDefinitionId,
+      //       }),
+      //     ],
+      //   }),
+      //   'Event Year': new ProofPredicateInfo({
+      //     name: 'Event Year',
+      //     predicateType: PredicateType.GreaterThanOrEqualTo,
+      //     predicateValue: 2022,
+      //     restrictions: [
+      //       new AttributeFilter({
+      //         credentialDefinitionId,
+      //       }),
+      //     ],
+      //   }),
+      // }
+
+      const proofRecord = await agent.proofs.requestProof({
+        protocolVersion: 'v2',
+        connectionId,
+        autoAcceptProof: AutoAcceptProof.Always,
+        proofFormats: {
+          indy: {
+            name: 'Hyperledger Entrance Check',
+            version: '1.0.0',
+            requested_attributes: {
+              Surname: {
+                name: 'Surname',
+                restrictions: [
+                  {
+                    cred_def_id: credentialDefinitionId,
+                  },
+                ],
+              },
+            },
+            requested_predicates: {
+              'Date of Birth': {
+                name: 'Date of Birth',
+                p_type: '<=',
+                p_value: 20000101,
+                restrictions: [
+                  {
+                    cred_def_id: credentialDefinitionId,
+                  },
+                ],
+              },
+            },
+          },
+        },
+      })
+
+      res.status(200).json({ proofRecord })
     }),
   )
 
@@ -225,8 +330,8 @@ function createAgent(name: string, port: number) {
         credentialProtocols: [
           new V2CredentialProtocol({
             credentialFormats: [
-              // new LegacyIndyCredentialFormatService(),
-              new AnonCredsCredentialFormatService(),
+              new LegacyIndyCredentialFormatService(),
+              // new AnonCredsCredentialFormatService(),
             ],
           }),
         ],
